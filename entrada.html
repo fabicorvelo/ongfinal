@@ -1,0 +1,198 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Entrada de Produto</title>
+    <link rel="stylesheet" href="style.css">
+
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: Arial, sans-serif;
+        }
+
+        .form-container {
+            max-width: 600px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        .produto-container {
+            display: flex;
+            align-items: center;
+            margin-bottom: 20px;
+            border: 1px solid #ddd;
+            padding: 10px;
+            border-radius: 5px;
+        }
+
+        .produto-info {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .produto-info p {
+            margin: 5px 0;
+        }
+
+        #resultado-pesquisa {
+            display: none;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="form-container">
+        <h1>Entrada de Produto</h1>
+        <form id="entradaForm" onsubmit="registrarEntrada(event)">
+
+            <label for="nomeProduto">Nome do Produto:</label>
+            <input type="text" id="nomeProduto" required>
+
+            <label for="quantidade">Quantidade:</label>
+            <input type="number" id="quantidade" placeholder="Quantidade" required>
+
+            <label for="dataEntrada">Data de Entrada:</label>
+            <input type="date" id="dataEntrada" placeholder="Data de Entrada" required>
+
+            <label for="validade">Data de Vencimento:</label>
+            <input type="date" id="dataValidade" placeholder="Data de Validade" required>
+            <button type="submit">Registrar Entrada</button>
+            <button type="button" onclick="window.location.href='index.html'">Voltar ao Menu</button>
+        </form>
+
+        <div class="search-container">
+            <input type="text" id="searchInput" placeholder="Pesquisar Entradas...">
+            <button onclick="pesquisarEntradas()">Pesquisar</button>
+        </div>
+
+        <div id="resultado-pesquisa">
+            <h2>Resultados da Pesquisa:</h2>
+            <div id="resultadosEntrada"></div>
+        </div>
+
+        <br><br>
+
+        <div id="entrada-list">
+            <h2>Entradas Registradas:</h2>
+            <div id="entradas"></div>
+        </div>
+        
+    </div>
+
+    <script>
+        function registrarEntrada(event) {
+            event.preventDefault(); // Evita o envio do formulário
+
+            const nomeProduto = document.getElementById('nomeProduto').value;
+            const quantidade = parseInt(document.getElementById('quantidade').value);
+            const dataEntrada = document.getElementById('dataEntrada').value;
+            const dataValidade = document.getElementById('dataValidade').value; 
+            const produtos = JSON.parse(localStorage.getItem('produtos')) || [];
+
+            const produtoIndex = produtos.findIndex(produto => produto.nome.toLowerCase() === nomeProduto.toLowerCase());
+
+            if (produtoIndex === -1) {
+                // Se o produto não existe, cria um novo
+                const novoProduto = {
+                    nome: nomeProduto,
+                    entradas: [{
+                        quantidade: quantidade,
+                        data: dataEntrada || new Date().toLocaleDateString('pt-BR'),
+                        validade: dataValidade
+                    }]
+                };
+                produtos.push(novoProduto);
+            } else {
+                // Se o produto existe, verifica a validade
+                const produto = produtos[produtoIndex];
+                const entradaExistente = produto.entradas.find(e => e.validade === dataValidade);
+
+                if (entradaExistente) {
+                    // Se a entrada já existe, soma as quantidades
+                    entradaExistente.quantidade += quantidade;
+                } else {
+                    // Caso contrário, cria uma nova entrada
+                    produto.entradas.push({
+                        quantidade: quantidade,
+                        data: dataEntrada || new Date().toLocaleDateString('pt-BR'),
+                        validade: dataValidade
+                    });
+                }
+            }
+
+            // Atualiza o localStorage
+            localStorage.setItem('produtos', JSON.stringify(produtos));
+
+            alert(`Entrada registrada: ${quantidade} unidades de ${nomeProduto}.`);
+            
+            // Limpa os campos do formulário
+            document.getElementById('entradaForm').reset();
+            mostrarEntradas(); // Atualiza a lista de entradas
+        }
+
+        function pesquisarEntradas() {
+            const searchInput = document.getElementById('searchInput').value.toLowerCase();
+            const produtos = JSON.parse(localStorage.getItem('produtos')) || [];
+            const resultadosContainer = document.getElementById('resultadosEntrada');
+            resultadosContainer.innerHTML = ''; // Limpa a lista de resultados
+
+            const entradasEncontradas = produtos.filter(produto => 
+                produto.entradas && produto.entradas.some(entrada => 
+                    produto.nome.toLowerCase().includes(searchInput)
+                )
+            );
+
+            if (entradasEncontradas.length === 0) {
+                resultadosContainer.innerHTML = '<p>Nenhum produto encontrado.</p>';
+                return;
+            }
+
+            entradasEncontradas.forEach(produto => {
+                const divProduto = document.createElement('div');
+                
+                produto.entradas.forEach(entrada => {
+                    const entradaInfo = document.createElement('p');
+                    entradaInfo.textContent = `Produto: ${produto.nome} - Quantidade: ${entrada.quantidade} - Data de Entrada: ${entrada.data} - Validade: ${entrada.validade || 'Não informada'}`;
+                    divProduto.appendChild(entradaInfo);
+                });
+                resultadosContainer.appendChild(divProduto);
+            });
+
+            // Mostra o resultado da pesquisa
+            document.getElementById('resultado-pesquisa').style.display = 'block';
+        }
+
+        function mostrarEntradas() {
+            const produtos = JSON.parse(localStorage.getItem('produtos')) || [];
+            const entradasContainer = document.getElementById('entradas');
+            entradasContainer.innerHTML = ''; // Limpa a lista de entradas
+
+            let temEntrada = false;
+            produtos.forEach(produto => {
+                if (produto.entradas && produto.entradas.length > 0) {
+                    temEntrada = true;
+                    const divProduto = document.createElement('div');
+
+                    produto.entradas.forEach(entrada => {
+                        const entradaInfo = document.createElement('p');
+                        entradaInfo.textContent = `Produto: ${produto.nome} - Quantidade: ${entrada.quantidade} - Data de Entrada: ${entrada.data} - Validade: ${entrada.validade || 'Não informada'}`;
+                        divProduto.appendChild(entradaInfo);
+                    });
+                    entradasContainer.appendChild(divProduto);
+                }
+            });
+
+            if (!temEntrada) {
+                entradasContainer.innerHTML = '<p>Nenhum produto entrou.</p>';
+            }
+        }
+
+        // Chama a função para mostrar entradas ao iniciar a página
+        window.onload = mostrarEntradas;
+    </script>
+</body>
+</html>

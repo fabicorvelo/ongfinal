@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Produtos Vencidos</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="form-container">
+        <h1>Produtos Vencidos</h1>
+        <p>Lista de produtos vencidos:</p>
+        <div id="produtosVencidos"></div>
+        <button onclick="window.location.href='index.html'">Voltar ao Menu</button>
+    </div>
+
+    <script>
+        function mostrarProdutosVencidos() {
+            const produtos = JSON.parse(localStorage.getItem('produtos')) || [];
+            const produtosVencidosContainer = document.getElementById('produtosVencidos');
+            produtosVencidosContainer.innerHTML = ''; // Limpa a lista de produtos vencidos
+
+            const hoje = new Date(); // Data atual
+            const produtosVencidos = [];
+
+            produtos.forEach(produto => {
+                const dataValidade = new Date(produto.dataValidade); // Converte a string para um objeto de data
+                if (dataValidade < hoje) { // Verifica se o produto está vencido
+                    produtosVencidos.push(produto);
+                }
+            });
+
+            // Ordena os produtos vencidos pela data de validade, do mais vencido para o menos vencido
+            produtosVencidos.sort((a, b) => new Date(a.dataValidade) - new Date(b.dataValidade));
+
+            if (produtosVencidos.length > 0) {
+                produtosVencidos.forEach(produto => {
+                    const divProduto = document.createElement('div');
+                    divProduto.style.display = 'flex'; // Exibe em linha
+                    divProduto.style.alignItems = 'center'; // Alinha verticalmente
+                    divProduto.style.marginBottom = '10px'; // Espaço entre os produtos
+
+                    // Cria a imagem do produto
+                    const img = document.createElement('img');
+                    img.src = produto.imagem || 'imagens/placeholder.png'; // Caminho da imagem padrão
+                    img.alt = produto.nome;
+                    img.style.width = '100px';
+                    img.style.height = '100px';
+                    img.style.marginRight = '10px'; // Espaço entre a imagem e o texto
+
+                    // Adiciona as informações do produto
+                    const infoProduto = document.createElement('div');
+                    infoProduto.innerHTML = `Produto: ${produto.nome}<br>Data de Validade: ${produto.dataValidade}`;
+                    
+                    // Adiciona a imagem e as informações ao contêiner do produto
+                    divProduto.appendChild(img);
+                    divProduto.appendChild(infoProduto);
+                    
+                    // Adiciona o contêiner do produto à lista de vencidos
+                    produtosVencidosContainer.appendChild(divProduto);
+                });
+            } else {
+                produtosVencidosContainer.innerHTML = '<p>Nenhum produto vencido.</p>';
+            }
+        }
+
+        // Chama a função ao carregar a página
+        window.onload = mostrarProdutosVencidos;
+    </script>
+</body>
+</html>

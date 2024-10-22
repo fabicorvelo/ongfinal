@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Saída de Produto</title>
+
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: Arial, sans-serif;
+            background-color: #001f3f;
+        }
+        
+        .form-container {
+            max-width: 600px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        .produto {
+            padding: 10px;
+            border: 1px solid #ddd;
+            margin-bottom: 10px;
+            border-radius: 5px;
+        }
+        .alert-amarelo {
+            background-color: #fff3cd; /* Amarelo */
+            color: #856404; /* Texto amarelo escuro */
+        }
+        .alert-vermelho {
+            background-color: #f8d7da; /* Vermelho */
+            color: #721c24; /* Texto vermelho escuro */
+        }
+        .alert-verde {
+            background-color: #d4edda; /* Verde */
+            color: #155724; /* Texto verde escuro */
+        }
+        input, button {
+            margin: 10px;
+            padding: 10px;
+            width: calc(100% - 22px);
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        button {
+            background-color: #FF851B;
+            color: white;
+            cursor: pointer;
+        }
+
+        button:hover {
+            background-color: #FF6347;
+        }
+        h1{
+            color: aliceblue;
+            text-align: center;
+        }
+
+    </style>
+</head>
+<body>
+    <div class="form-container">
+        <br><hr>
+        <h1>Lista de Produtos</h1>
+        <div id="lista-produtos"></div>
+        <h1>Remover Produto</h1>
+        <input type="text" id="nomeSaida" placeholder="Nome do produto" required>
+        <input type="number" id="quantidadeSaida" placeholder="Quantidade" required>
+        <input type="date" id="validadeSaida" placeholder="Data de Validade" required>
+        <button onclick="removerProduto()">Remover</button>
+        <button onclick="window.location.href='index.html'">Voltar ao Menu</button>
+       
+
+    </div>
+
+    <script>
+        function mostrarProdutos() {
+            const produtos = JSON.parse(localStorage.getItem('produtos')) || [];
+            const listaProdutosContainer = document.getElementById('lista-produtos');
+            listaProdutosContainer.innerHTML = ''; // Limpa a lista
+
+            const hoje = new Date();
+
+            const produtosParaExibir = produtos.flatMap(produto => 
+                produto.entradas.map(entrada => ({
+                    ...produto,
+                    entrada
+                }))
+            ).filter(item => item.entrada.quantidade > 0)
+            .sort((a, b) => new Date(b.entrada.validade) - new Date(a.entrada.validade));
+
+            produtosParaExibir.forEach(item => {
+                const divProduto = document.createElement('div');
+                divProduto.classList.add('produto');
+                
+                const dataValidade = new Date(item.entrada.validade);
+                const diffDias = Math.ceil((dataValidade - hoje) / (1000 * 60 * 60 * 24));
+
+                if (diffDias < 0) {
+                    divProduto.classList.add('alert-vermelho');
+                } else if (diffDias <= 5) {
+                    divProduto.classList.add('alert-vermelho');
+                } else if (diffDias <= 15) {
+                    divProduto.classList.add('alert-amarelo');
+                } else if (diffDias <= 730) { 
+                    divProduto.classList.add('alert-verde');
+                } 
+
+                divProduto.innerHTML = `
+                    <strong>Produto:</strong> ${item.nome}<br>
+                    <strong>Quantidade:</strong> ${item.entrada.quantidade}<br>
+                    <strong>Data de Validade:</strong> ${item.entrada.validade}<br>
+                    <strong>Faltam:</strong> ${diffDias} dias
+                `;
+                listaProdutosContainer.appendChild(divProduto);
+            });
+
+            if (produtosParaExibir.length === 0) {
+                listaProdutosContainer.innerHTML = '<p>Nenhum produto disponível.</p>';
+            }
+        }
+
+        function removerProduto() {
+            const nome = document.getElementById('nomeSaida').value;
+            const quantidade = parseInt(document.getElementById('quantidadeSaida').value);
+            const validade = document.getElementById('validadeSaida').value;
+            const produtos = JSON.parse(localStorage.getItem('produtos')) || [];
+
+            const produto = produtos.find(p => p.nome.toLowerCase() === nome.toLowerCase());
+            if (!produto) {
+                alert('Produto não encontrado.');
+                return;
+            }
+
+            const entrada = produto.entradas.find(e => e.validade === validade);
+            if (!entrada) {
+                alert('Produto com esta data de validade não encontrado.');
+                return;
+            }
+
+            if (entrada.quantidade < quantidade) {
+                alert('Quantidade maior do que a disponível.');
+                return;
+            }
+
+            // Remover a quantidade do produto
+            entrada.quantidade -= quantidade;
+
+            if (entrada.quantidade === 0) {
+                // Se a quantidade ficar zero, remove a entrada
+                produto.entradas = produto.entradas.filter(e => e.validade !== validade);
+                if (produto.entradas.length === 0) {
+                    // Se não houver mais entradas, remover o produto
+                    produtos.splice(produtos.indexOf(produto), 1);
+                }
+            }
+
+            localStorage.setItem('produtos', JSON.stringify(produtos));
+            alert('Produto removido com sucesso!');
+            document.getElementById('nomeSaida').value = '';
+            document.getElementById('quantidadeSaida').value = '';
+            document.getElementById('validadeSaida').value = '';
+
+            mostrarProdutos();
+        }
+
+        // Chama a função ao carregar a página
+        window.onload = mostrarProdutos;
+    </script>
+</body>
+</html>

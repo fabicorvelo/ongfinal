@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Estoque</title>
+    <link rel="stylesheet" href="style2.css">
+</head>
+<body>
+    <h1>Estoque de Produtos</h1>
+
+    <div class="search-container">
+        <input type="text" id="searchInput" placeholder="Digite o nome do produto...">
+        <button onclick="filtrarProdutos()">Pesquisar</button>
+    </div>
+
+    <div id="product-list"></div>
+
+    <button type="button" onclick="window.location.href='index.html'">Voltar ao Menu</button>
+
+    <script>
+        // Função para carregar e exibir os produtos do estoque
+        function carregarProdutos() {
+            const produtos = JSON.parse(localStorage.getItem('produtos')) || [];
+            exibirProdutos(produtos);
+        }
+
+        // Função para exibir os produtos na lista
+        function exibirProdutos(produtos) {
+            const productList = document.getElementById('product-list');
+            productList.innerHTML = '';
+
+            if (produtos.length === 0) {
+                const mensagem = document.createElement('p');
+                mensagem.textContent = "Nenhum produto no estoque.";
+                productList.appendChild(mensagem);
+                return;
+            }
+
+            // Ordenar os produtos por data de entrada
+            produtos.sort((a, b) => new Date(a.dataEntrada || '1970-01-01') - new Date(b.dataEntrada || '1970-01-01'));
+
+            // Agrupar produtos por nome
+            const produtosAgrupados = {};
+
+            produtos.forEach(produto => {
+                const chave = produto.nome.toLowerCase();
+                if (!produtosAgrupados[chave]) {
+                    produtosAgrupados[chave] = {
+                        nome: produto.nome,
+                        quantidadeTotal: 0 // Inicializa a quantidade total
+                    };
+                }
+
+                // Somar as quantidades
+                produto.entradas.forEach(entrada => {
+                    produtosAgrupados[chave].quantidadeTotal += entrada.quantidade;
+                });
+            });
+
+            // Criar a lista de produtos a partir dos agrupados
+            const produtosLista = Object.values(produtosAgrupados);
+
+            produtosLista.forEach(produto => {
+                const divProduto = document.createElement('div');
+                divProduto.classList.add('produto-item');
+
+                const info = document.createElement('p');
+                info.textContent = `Nome: ${produto.nome}, Quantidade Total: ${produto.quantidadeTotal}`;
+                divProduto.appendChild(info);
+
+                productList.appendChild(divProduto);
+            });
+        }
+
+        // Função para filtrar os produtos
+        function filtrarProdutos() {
+            const searchInput = document.getElementById('searchInput').value.toLowerCase();
+            const produtos = JSON.parse(localStorage.getItem('produtos')) || [];
+
+            const produtosFiltrados = produtos.filter(produto => produto.nome.toLowerCase().includes(searchInput));
+            exibirProdutos(produtosFiltrados);
+        }
+
+        window.onload = carregarProdutos;
+    </script>
+</body>
+</html>

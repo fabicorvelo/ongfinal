@@ -1,0 +1,213 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Saída de Produto</title>
+    <link rel="stylesheet" href="style.css">
+    <style>
+    /* Estilos básicos */
+    body {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+    font-family: Arial, sans-serif;
+}
+
+html, body {
+    height: 100%; /* Garante que o body ocupe a tela inteira */
+}
+
+        .form-container {
+            max-width: 600px;
+            margin: 0 auto;
+        }
+        
+        .produto-container {
+            display: flex;
+            align-items: center;
+            margin-bottom: 20px;
+            border: 1px solid #ddd;
+            padding: 10px;
+            border-radius: 5px;
+        }
+
+        .produto-container img {
+            margin-right: 20px;
+            border-radius: 5px;
+        }
+
+        .produto-info {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .produto-info p {
+            margin: 5px 0;
+        }
+        #resultado-pesquisa {
+            display: none; /* Inicialmente oculto */
+        }
+    </style>
+</head>
+<body>
+    
+    <div class="form-container">
+        <h1>Saída de Produto</h1>
+        <form id="saidaForm" onsubmit="registrarSaida(event)">
+            <label for="nomeProduto">Nome do Produto:</label>
+            <input type="text" id="nomeProduto" required>
+
+            <label for="quantidade">Quantidade:</label>
+            <input type="number" id="quantidade" required>
+
+            <label for="dataEntrada">Data de Saída:</label>
+            <input type="date" id="dataSaida"  required>
+
+            <label for="validade">Data de Vencimento:</label>
+            <input type="date" id="dataValidade"  required>
+            <button type="submit">Registrar Saída</button>
+            <button type="button" onclick="window.location.href='index.html'">Voltar ao Menu</button>
+        </form>
+
+        <!-- Campo de pesquisa e botão -->
+        <div class="search-container">
+            <input type="text" id="searchInput" placeholder="Pesquisar Saídas...">
+            <button onclick="pesquisarSaidas()">Pesquisar</button>
+        </div>
+
+          <!-- Exibe resultados da pesquisa -->
+          <div id="resultado-pesquisa">
+            <h2>Resultados da Pesquisa:</h2>
+            <div id="resultadosSaida"></div>
+        </div>
+        <br>
+        <!-- Exibe os produtos que saíram -->
+        <div id="saida-list">
+            <h2>Saídas Registradas:</h2>
+            <div id="saidas"></div>
+        </div>
+        
+
+      
+    </div>
+
+    <script>
+        function registrarSaida(event) {
+            event.preventDefault(); // Evita o envio do formulário
+
+            const nomeProduto = document.getElementById('nomeProduto').value;
+            const quantidade = parseInt(document.getElementById('quantidade').value);
+            const dataSaida = document.getElementById('dataSaida').value;
+            const dataValidade = document.getElementById('dataValidade').value; // Obtém a data de validade
+            const produtos = JSON.parse(localStorage.getItem('produtos')) || [];
+
+            const produtoIndex = produtos.findIndex(produto => produto.nome.toLowerCase() === nomeProduto.toLowerCase());
+
+            if (produtoIndex === -1) {
+                alert("Produto não encontrado.");
+                return;
+            }
+
+            const produto = produtos[produtoIndex];
+
+            // Verifica se há quantidade suficiente
+            if (quantidade > produto.quantidade) {
+                alert("Quantidade solicitada maior que a disponível.");
+                return;
+            }
+
+            // Atualiza a quantidade e registra a data de saída
+            produto.quantidade -= quantidade;
+            produto.dataSaida = produto.dataSaida || []; // Inicializa a lista de saídas, se não existir
+            produto.dataSaida.push({
+                quantidade: quantidade,
+                data: dataSaida || new Date().toLocaleDateString('pt-BR'), // Usa a data fornecida ou a data atual
+                validade: dataValidade // Adiciona a data de validade ao registro de saída
+            });
+
+            // Atualiza o produto no localStorage
+            produtos[produtoIndex] = produto;
+            localStorage.setItem('produtos', JSON.stringify(produtos));
+
+            alert(`Saída registrada: ${quantidade} unidades de ${nomeProduto}.`);
+            
+            // Limpa os campos do formulário
+            document.getElementById('saidaForm').reset();
+            mostrarSaidas(); // Atualiza a lista de saídas
+        }
+
+        function pesquisarSaidas() {
+            const searchInput = document.getElementById('searchInput').value.toLowerCase();
+            const produtos = JSON.parse(localStorage.getItem('produtos')) || [];
+            const resultadosContainer = document.getElementById('resultadosSaida');
+            resultadosContainer.innerHTML = ''; // Limpa a lista de resultados
+
+            const saídasEncontradas = produtos.filter(produto => 
+                produto.dataSaida && produto.dataSaida.some(saida => 
+                    produto.nome.toLowerCase().includes(searchInput)
+                )
+            );
+
+            if (saídasEncontradas.length === 0) {
+                resultadosContainer.innerHTML = '<p>Nenhum produto saiu.</p>';
+                return;
+            }
+
+            saídasEncontradas.forEach(produto => {
+                const divProduto = document.createElement('div');
+                const img = document.createElement('img');
+                img.src = produto.imagem || 'imagens/placeholder.png'; // Substitua pelo caminho da imagem padrão se não houver imagem
+                img.alt = produto.nome;
+                img.style.width = '100px';
+                img.style.height = '100px';
+                divProduto.appendChild(img);
+
+                produto.dataSaida.forEach(saida => {
+                    const saidaInfo = document.createElement('p');
+                    saidaInfo.textContent = `Produto: ${produto.nome} - Quantidade: ${saida.quantidade} - Data de Saída: ${saida.data} - Validade: ${saida.validade || 'Não informada'}`;
+                    divProduto.appendChild(saidaInfo);
+                });
+                resultadosContainer.appendChild(divProduto);
+            });
+            var resultado = document.getElementById('resultado-pesquisa');
+            resultado.style.display = 'block'; // Mostra o h2
+        }
+
+        // Função para mostrar saídas ao carregar a página
+        function mostrarSaidas() {
+            const produtos = JSON.parse(localStorage.getItem('produtos')) || [];
+            const saidasContainer = document.getElementById('saidas');
+            saidasContainer.innerHTML = ''; // Limpa a lista de saídas
+
+            let temSaida = false;
+            produtos.forEach(produto => {
+                if (produto.dataSaida && produto.dataSaida.length > 0) {
+                    temSaida = true;
+                    const divProduto = document.createElement('div');
+                    const img = document.createElement('img');
+                    img.src = produto.imagem || 'imagens/placeholder.png'; // Substitua pelo caminho da imagem padrão se não houver imagem
+                    img.alt = produto.nome;
+                    img.style.width = '100px';
+                    img.style.height = '100px';
+                    divProduto.appendChild(img);
+
+                    produto.dataSaida.forEach(saida => {
+                        const saidaInfo = document.createElement('p');
+                        saidaInfo.textContent = `Produto: ${produto.nome} - Quantidade: ${saida.quantidade} - Data de Saída: ${saida.data} - Validade: ${saida.validade || 'Não informada'}`;
+                        divProduto.appendChild(saidaInfo);
+                    });
+                    saidasContainer.appendChild(divProduto);
+                }
+            });
+
+            if (!temSaida) {
+                saidasContainer.innerHTML = '<p>Este produto não saiu.</p>';
+            }
+        }
+
+        // Chama a função para mostrar saídas ao iniciar a página
+        window.onload = mostrarSaidas;
+    </script>
+</body>
+</html>
